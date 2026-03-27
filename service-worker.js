@@ -3,7 +3,7 @@
    Offline shell caching for GitHub Pages / PWA
    ════════════════════════════════════════════════════════ */
 
-const CACHE = 'sf-v2-shell-1';
+const CACHE = 'sf-v2-shell-2';
 
 const SHELL = [
   './',
@@ -11,6 +11,8 @@ const SHELL = [
   './styles.css',
   './script.js',
   './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png',
 ];
 
 /* ── INSTALL ─────────────────────────────────────────── */
