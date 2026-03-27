@@ -149,6 +149,7 @@ body::before {
   cursor: pointer; white-space: nowrap;
   transition: all 0.15s; touch-action: manipulation;
 }
+.header-btn { display: none; }
 .header-btn:hover { border-color: var(--a1); color: var(--a2); }
 .header-btn.danger:hover { border-color: var(--red); color: var(--red); }
 
@@ -476,6 +477,31 @@ input[type="range"]::-moz-range-thumb {
 
 .export-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
 
+/* ── SIMPLE MODE / MY AFFIRMATIONS ───────────────────── */
+.mode-main-btns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.mode-btn { font-size: 13px; padding: 12px 10px; }
+.mode-btn.active { box-shadow: 0 0 0 1px var(--c1) inset, 0 0 20px rgba(0,212,170,0.18); }
+
+.my-aff-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.my-aff-col label {
+  display: block;
+  margin-bottom: 7px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+}
+.my-aff-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+#secAdvancedToggle .btn-ghost { width: 100%; text-align: center; }
+
 .btn-primary {
   padding: 12px 26px; border-radius: var(--r-sm);
   border: none; background: var(--a1); color: #fff;
@@ -543,17 +569,15 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 480px) {
   .header-inner { padding: 11px 14px; gap: 8px; }
   .header-btn   { display: none; }
-  /* Keep save/load visible as icon-only on mobile */
   .header-btn[id="btnSaveSession"],
   .header-btn[id="btnLoadSession"],
-  .header-btn[id="btnResetSession"] {
-    display: flex; padding: 6px 9px; font-size: 10px;
-  }
+  .header-btn[id="btnResetSession"] { display: none; }
   .app-main  { padding: 14px 12px 60px; gap: 14px; }
   .card      { padding: 16px 14px; }
   .tbtn      { width: 46px; height: 46px; font-size: 14px; }
   .tbtn.primary { width: 58px; height: 58px; font-size: 18px; }
   .btn-primary.big { width: 100%; font-size: 14px; }
+  .mode-main-btns { grid-template-columns: 1fr; }
   .export-actions { gap: 10px; }
   .export-actions .btn-ghost { width: 100%; text-align: center; }
   .ltab { padding: 9px 12px; font-size: 11px; }
