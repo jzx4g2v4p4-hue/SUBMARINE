@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="SubForge"/>
+  <meta name="theme-color" content="#080810"/>
+  <meta name="description" content="Subliminal Forge v2 — multi-layer subliminal affirmation music mixer. Runs entirely in your browser."/>
+  <title>Subliminal Forge</title>
+  <link rel="manifest" href="manifest.webmanifest"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════ -->
+<header class="app-header" id="appHeader">
+  <div class="header-inner">
+    <div class="logo">
+      <svg class="logo-hex" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 2L28.7 9.5V24.5L16 32L3.3 24.5V9.5L16 2Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+        <circle cx="16" cy="17" r="3" fill="currentColor" opacity="0.7"/>
+        <line x1="16" y1="8" x2="16" y2="12" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="16" y1="22" x2="16" y2="26" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="8" y1="12.5" x2="12" y2="14.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="20" y1="19.5" x2="24" y2="21.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="8" y1="21.5" x2="12" y2="19.5" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="20" y1="14.5" x2="24" y2="12.5" stroke="currentColor" stroke-width="1.5"/>
+      </svg>
+      <span class="logo-text">Subliminal<b>Forge</b> <sup class="logo-v2">v2</sup></span>
+    </div>
+    <div class="header-right">
+      <div class="status-pill" id="statusPill">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusLabel">Ready</span>
+      </div>
+      <button class="header-btn" id="btnSaveSession" title="Save Session">⬇ Save</button>
+      <button class="header-btn" id="btnLoadSession" title="Load Session">⬆ Load</button>
+      <button class="header-btn danger" id="btnResetSession" title="Reset Session">↺</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     MAIN
+══════════════════════════════════════════ -->
+<main class="app-main">
+
+  <!-- ── SECTION: TRACK UPLOAD ────────────── -->
+  <section class="card" id="secTrack">
+    <div class="card-hd">
+      <span class="card-ic">◈</span>
+      <h2>Track</h2>
+      <span class="card-badge" id="trackBadge">No file</span>
+    </div>
+
+    <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="Upload audio file">
+      <input type="file" id="audioFile" accept=".mp3,.wav,audio/*" hidden/>
+      <div class="uz-idle" id="uzIdle">
+        <div class="uz-icon">♫</div>
+        <p class="uz-title">Tap or drop to upload a track</p>
+        <p class="uz-sub">MP3 · WAV — processed entirely on device</p>
+      </div>
+      <div class="uz-loaded hidden" id="uzLoaded">
+        <div class="uz-icon ok">✓</div>
+        <p class="uz-title" id="uzFilename">—</p>
+        <p class="uz-sub" id="uzMeta">—</p>
+        <button class="btn-ghost xs" id="btnChangeFile">Change file</button>
+      </div>
+    </div>
+
+    <!-- Transport -->
+    <div class="transport" id="transport">
+      <div class="seek-row">
+        <span class="t-time" id="tCurrent">0:00</span>
+        <input type="range" class="seekbar" id="seekBar" min="0" max="1000" value="0"/>
+        <span class="t-time" id="tTotal">0:00</span>
+      </div>
+      <div class="t-btns">
+        <button class="tbtn" id="btnStop" aria-label="Stop">■</button>
+        <button class="tbtn primary" id="btnPlay" aria-label="Play">▶</button>
+        <button class="tbtn" id="btnPause" aria-label="Pause">⏸</button>
+        <label class="toggle-pill" title="Loop music">
+          <input type="checkbox" id="toggleMusicLoop" checked/>
+          <span>Loop</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- VU meters -->
+    <div class="vu-row">
+      <div class="vu-channel">
+        <div class="vu-label">MUSIC</div>
+        <div class="vu-bar-wrap"><div class="vu-bar" id="vuMusic"></div></div>
+      </div>
+      <div class="vu-channel">
+        <div class="vu-label">SUB MIX</div>
+        <div class="vu-bar-wrap"><div class="vu-bar" id="vuSub"></div></div>
+      </div>
+      <div class="vu-channel">
+        <div class="vu-label">MASTER</div>
+        <div class="vu-bar-wrap"><div class="vu-bar" id="vuMaster"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: GLOBAL MIXER ─────────────── -->
+  <section class="card" id="secMixer">
+    <div class="card-hd">
+      <span class="card-ic">⊞</span>
+      <h2>Global Mixer</h2>
+    </div>
+    <div class="mixer-grid">
+      <div class="mix-ctrl">
+        <label>Music Vol</label>
+        <input type="range" id="slMusicVol" min="0" max="100" value="80"/>
+        <span class="mix-val" id="vMusicVol">80%</span>
+      </div>
+      <div class="mix-ctrl">
+        <label>Sub Mix Vol</label>
+        <input type="range" id="slSubMix" min="0" max="100" value="28"/>
+        <span class="mix-val" id="vSubMix">28%</span>
+      </div>
+      <div class="mix-ctrl">
+        <label>Master Vol</label>
+        <input type="range" id="slMasterVol" min="0" max="100" value="88"/>
+        <span class="mix-val" id="vMasterVol">88%</span>
+      </div>
+      <div class="mix-ctrl">
+        <label>Playback Speed</label>
+        <input type="range" id="slSpeed" min="50" max="200" value="100"/>
+        <span class="mix-val" id="vSpeed">1.00×</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: SUBLIMINAL LAYERS ─────────── -->
+  <section class="card" id="secLayers">
+    <div class="card-hd">
+      <span class="card-ic">⟁</span>
+      <h2>Subliminal Layers</h2>
+      <span class="card-badge">3 independent layers</span>
+    </div>
+
+    <!-- Layer tabs -->
+    <div class="layer-tabs" id="layerTabs">
+      <button class="ltab active" data-layer="0">Layer 1</button>
+      <button class="ltab" data-layer="1">Layer 2</button>
+      <button class="ltab" data-layer="2">Layer 3</button>
+    </div>
+
+    <!-- Layer panels (one per layer) -->
+    <div id="layerPanels">
+
+      <!-- LAYER 0 -->
+      <div class="layer-panel" id="lp0">
+        <div class="layer-header-row">
+          <label class="toggle-pill">
+            <input type="checkbox" class="l-enabled" data-layer="0" checked/>
+            <span>Enabled</span>
+          </label>
+          <div class="masking-mode-wrap">
+            <label class="ctrl-label">Texture</label>
+            <select class="select-dark l-texture" data-layer="0">
+              <option value="tone">Tone Burst</option>
+              <option value="whisper">Soft Whisper</option>
+              <option value="deep">Deep Mask</option>
+              <option value="hiss">Airy Hiss</option>
+              <option value="pulse">Pulse Bed</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Preset packs -->
+        <div class="preset-row">
+          <label class="ctrl-label">Preset Pack</label>
+          <div class="preset-chips">
+            <button class="chip l-preset" data-layer="0" data-preset="focus">Focus</button>
+            <button class="chip l-preset" data-layer="0" data-preset="confidence">Confidence</button>
+            <button class="chip l-preset" data-layer="0" data-preset="discipline">Discipline</button>
+            <button class="chip l-preset" data-layer="0" data-preset="recovery">Recovery</button>
+            <button class="chip l-preset" data-layer="0" data-preset="gym">Gym</button>
+            <button class="chip l-preset" data-layer="0" data-preset="study">Study</button>
+          </div>
+        </div>
+
+        <textarea class="aff-area l-text" data-layer="0" placeholder="Layer 1 affirmations — one per line or paste a paragraph and tap Normalize." rows="7"></textarea>
+        <div class="aff-count-row"><span class="l-count" data-layer="0">0</span> affirmations</div>
+
+        <div class="aff-btns">
+          <button class="btn-sm l-clear" data-layer="0">Clear</button>
+          <button class="btn-sm l-shuffle" data-layer="0">Shuffle</button>
+          <button class="btn-sm l-normalize" data-layer="0">Normalize</button>
+          <button class="btn-sm l-dup" data-layer="0">Dup</button>
+          <button class="btn-sm l-r2" data-layer="0">×2</button>
+          <button class="btn-sm l-r4" data-layer="0">×4</button>
+        </div>
+
+        <div class="layer-sliders">
+          <div class="ls-item">
+            <label>Volume</label>
+            <input type="range" class="l-vol" data-layer="0" min="0" max="100" value="30"/>
+            <span class="ls-val l-vol-val" data-layer="0">30%</span>
+          </div>
+          <div class="ls-item">
+            <label>Speed</label>
+            <input type="range" class="l-speed" data-layer="0" min="50" max="300" value="100"/>
+            <span class="ls-val l-speed-val" data-layer="0">1.00×</span>
+          </div>
+          <div class="ls-item">
+            <label>Density</label>
+            <input type="range" class="l-density" data-layer="0" min="1" max="20" value="5"/>
+            <span class="ls-val l-density-val" data-layer="0">5</span>
+          </div>
+          <div class="ls-item">
+            <label>Spacing (ms)</label>
+            <input type="range" class="l-spacing" data-layer="0" min="0" max="2000" value="300" step="50"/>
+            <span class="ls-val l-spacing-val" data-layer="0">300ms</span>
+          </div>
+        </div>
+
+        <!-- Sub mode -->
+        <div class="submode-row">
+          <label class="ctrl-label">Mode</label>
+          <div class="mode-chips">
+            <button class="chip mode-c active l-mode-chip" data-layer="0" data-mode="low">Low Masked</button>
+            <button class="chip mode-c l-mode-chip" data-layer="0" data-mode="audible">Audible</button>
+            <button class="chip mode-c l-mode-chip" data-layer="0" data-mode="silent">Silent Fast</button>
+          </div>
+        </div>
+
+        <!-- Intensity bar -->
+        <div class="intensity-wrap">
+          <div class="intensity-track">
+            <div class="intensity-fill l-intensity" data-layer="0"></div>
+          </div>
+          <div class="intensity-labels"><span>Subtle</span><span>Moderate</span><span>Dense</span></div>
+        </div>
+      </div>
+
+      <!-- LAYER 1 (same structure) -->
+      <div class="layer-panel hidden" id="lp1">
+        <div class="layer-header-row">
+          <label class="toggle-pill">
+            <input type="checkbox" class="l-enabled" data-layer="1"/>
+            <span>Enabled</span>
+          </label>
+          <div class="masking-mode-wrap">
+            <label class="ctrl-label">Texture</label>
+            <select class="select-dark l-texture" data-layer="1">
+              <option value="tone">Tone Burst</option>
+              <option value="whisper" selected>Soft Whisper</option>
+              <option value="deep">Deep Mask</option>
+              <option value="hiss">Airy Hiss</option>
+              <option value="pulse">Pulse Bed</option>
+            </select>
+          </div>
+        </div>
+        <div class="preset-row">
+          <label class="ctrl-label">Preset Pack</label>
+          <div class="preset-chips">
+            <button class="chip l-preset" data-layer="1" data-preset="focus">Focus</button>
+            <button class="chip l-preset" data-layer="1" data-preset="confidence">Confidence</button>
+            <button class="chip l-preset" data-layer="1" data-preset="discipline">Discipline</button>
+            <button class="chip l-preset" data-layer="1" data-preset="recovery">Recovery</button>
+            <button class="chip l-preset" data-layer="1" data-preset="gym">Gym</button>
+            <button class="chip l-preset" data-layer="1" data-preset="study">Study</button>
+          </div>
+        </div>
+        <textarea class="aff-area l-text" data-layer="1" placeholder="Layer 2 affirmations — use a different set than Layer 1 for richer effect." rows="7"></textarea>
+        <div class="aff-count-row"><span class="l-count" data-layer="1">0</span> affirmations</div>
+        <div class="aff-btns">
+          <button class="btn-sm l-clear" data-layer="1">Clear</button>
+          <button class="btn-sm l-shuffle" data-layer="1">Shuffle</button>
+          <button class="btn-sm l-normalize" data-layer="1">Normalize</button>
+          <button class="btn-sm l-dup" data-layer="1">Dup</button>
+          <button class="btn-sm l-r2" data-layer="1">×2</button>
+          <button class="btn-sm l-r4" data-layer="1">×4</button>
+        </div>
+        <div class="layer-sliders">
+          <div class="ls-item">
+            <label>Volume</label>
+            <input type="range" class="l-vol" data-layer="1" min="0" max="100" value="20"/>
+            <span class="ls-val l-vol-val" data-layer="1">20%</span>
+          </div>
+          <div class="ls-item">
+            <label>Speed</label>
+            <input type="range" class="l-speed" data-layer="1" min="50" max="300" value="130"/>
+            <span class="ls-val l-speed-val" data-layer="1">1.30×</span>
+          </div>
+          <div class="ls-item">
+            <label>Density</label>
+            <input type="range" class="l-density" data-layer="1" min="1" max="20" value="8"/>
+            <span class="ls-val l-density-val" data-layer="1">8</span>
+          </div>
+          <div class="ls-item">
+            <label>Spacing (ms)</label>
+            <input type="range" class="l-spacing" data-layer="1" min="0" max="2000" value="150" step="50"/>
+            <span class="ls-val l-spacing-val" data-layer="1">150ms</span>
+          </div>
+        </div>
+        <div class="submode-row">
+          <label class="ctrl-label">Mode</label>
+          <div class="mode-chips">
+            <button class="chip mode-c l-mode-chip" data-layer="1" data-mode="low">Low Masked</button>
+            <button class="chip mode-c l-mode-chip" data-layer="1" data-mode="audible">Audible</button>
+            <button class="chip mode-c active l-mode-chip" data-layer="1" data-mode="silent">Silent Fast</button>
+          </div>
+        </div>
+        <div class="intensity-wrap">
+          <div class="intensity-track">
+            <div class="intensity-fill l-intensity" data-layer="1"></div>
+          </div>
+          <div class="intensity-labels"><span>Subtle</span><span>Moderate</span><span>Dense</span></div>
+        </div>
+      </div>
+
+      <!-- LAYER 2 (same structure) -->
+      <div class="layer-panel hidden" id="lp2">
+        <div class="layer-header-row">
+          <label class="toggle-pill">
+            <input type="checkbox" class="l-enabled" data-layer="2"/>
+            <span>Enabled</span>
+          </label>
+          <div class="masking-mode-wrap">
+            <label class="ctrl-label">Texture</label>
+            <select class="select-dark l-texture" data-layer="2">
+              <option value="tone">Tone Burst</option>
+              <option value="whisper">Soft Whisper</option>
+              <option value="deep" selected>Deep Mask</option>
+              <option value="hiss">Airy Hiss</option>
+              <option value="pulse">Pulse Bed</option>
+            </select>
+          </div>
+        </div>
+        <div class="preset-row">
+          <label class="ctrl-label">Preset Pack</label>
+          <div class="preset-chips">
+            <button class="chip l-preset" data-layer="2" data-preset="focus">Focus</button>
+            <button class="chip l-preset" data-layer="2" data-preset="confidence">Confidence</button>
+            <button class="chip l-preset" data-layer="2" data-preset="discipline">Discipline</button>
+            <button class="chip l-preset" data-layer="2" data-preset="recovery">Recovery</button>
+            <button class="chip l-preset" data-layer="2" data-preset="gym">Gym</button>
+            <button class="chip l-preset" data-layer="2" data-preset="study">Study</button>
+          </div>
+        </div>
+        <textarea class="aff-area l-text" data-layer="2" placeholder="Layer 3 affirmations — try a deep identity layer: 'I am...' statements." rows="7"></textarea>
+        <div class="aff-count-row"><span class="l-count" data-layer="2">0</span> affirmations</div>
+        <div class="aff-btns">
+          <button class="btn-sm l-clear" data-layer="2">Clear</button>
+          <button class="btn-sm l-shuffle" data-layer="2">Shuffle</button>
+          <button class="btn-sm l-normalize" data-layer="2">Normalize</button>
+          <button class="btn-sm l-dup" data-layer="2">Dup</button>
+          <button class="btn-sm l-r2" data-layer="2">×2</button>
+          <button class="btn-sm l-r4" data-layer="2">×4</button>
+        </div>
+        <div class="layer-sliders">
+          <div class="ls-item">
+            <label>Volume</label>
+            <input type="range" class="l-vol" data-layer="2" min="0" max="100" value="15"/>
+            <span class="ls-val l-vol-val" data-layer="2">15%</span>
+          </div>
+          <div class="ls-item">
+            <label>Speed</label>
+            <input type="range" class="l-speed" data-layer="2" min="50" max="300" value="170"/>
+            <span class="ls-val l-speed-val" data-layer="2">1.70×</span>
+          </div>
+          <div class="ls-item">
+            <label>Density</label>
+            <input type="range" class="l-density" data-layer="2" min="1" max="20" value="12"/>
+            <span class="ls-val l-density-val" data-layer="2">12</span>
+          </div>
+          <div class="ls-item">
+            <label>Spacing (ms)</label>
+            <input type="range" class="l-spacing" data-layer="2" min="0" max="2000" value="80" step="50"/>
+            <span class="ls-val l-spacing-val" data-layer="2">80ms</span>
+          </div>
+        </div>
+        <div class="submode-row">
+          <label class="ctrl-label">Mode</label>
+          <div class="mode-chips">
+            <button class="chip mode-c l-mode-chip" data-layer="2" data-mode="low">Low Masked</button>
+            <button class="chip mode-c l-mode-chip" data-layer="2" data-mode="audible">Audible</button>
+            <button class="chip mode-c active l-mode-chip" data-layer="2" data-mode="silent">Silent Fast</button>
+          </div>
+        </div>
+        <div class="intensity-wrap">
+          <div class="intensity-track">
+            <div class="intensity-fill l-intensity" data-layer="2"></div>
+          </div>
+          <div class="intensity-labels"><span>Subtle</span><span>Moderate</span><span>Dense</span></div>
+        </div>
+      </div>
+
+    </div><!-- /layerPanels -->
+  </section>
+
+  <!-- ── SECTION: FOCUS / BINAURAL LAYER ──── -->
+  <section class="card" id="secFocus">
+    <div class="card-hd">
+      <span class="card-ic">◎</span>
+      <h2>Focus Layer</h2>
+      <span class="card-badge info">🎧 Headphones recommended for binaural effect</span>
+    </div>
+    <div class="focus-notice">
+      This layer generates a stereo carrier tone pair. When heard through headphones, the brain perceives a beat at the difference frequency between left and right channels (binaural beat). Speaker playback removes the binaural effect but still adds an ambient tone layer.
+    </div>
+    <div class="focus-controls">
+      <label class="toggle-pill">
+        <input type="checkbox" id="toggleFocus"/>
+        <span>Enable Focus Layer</span>
+      </label>
+      <div class="mix-ctrl">
+        <label>Volume</label>
+        <input type="range" id="slFocusVol" min="0" max="60" value="15"/>
+        <span class="mix-val" id="vFocusVol">15%</span>
+      </div>
+      <div class="focus-presets">
+        <label class="ctrl-label">Preset</label>
+        <div class="preset-chips">
+          <button class="chip focus-preset active" data-fp="focus">Focus (40 Hz)</button>
+          <button class="chip focus-preset" data-fp="calm">Calm (10 Hz)</button>
+          <button class="chip focus-preset" data-fp="sleep">Sleep (4 Hz)</button>
+          <button class="chip focus-preset" data-fp="deep">Deep (2 Hz)</button>
+          <button class="chip focus-preset" data-fp="high">High Alert (60 Hz)</button>
+        </div>
+      </div>
+      <div class="focus-info" id="focusInfo">Carrier: 200 Hz L / 240 Hz R · Beat: 40 Hz (Gamma — focus, attention)</div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: EXPORT ───────────────────── -->
+  <section class="card" id="secExport">
+    <div class="card-hd">
+      <span class="card-ic">⤓</span>
+      <h2>Export</h2>
+    </div>
+
+    <div class="export-notice" id="exportNotice"></div>
+
+    <div class="export-form">
+      <div class="input-row">
+        <label class="ctrl-label" for="exportFilename">Filename</label>
+        <div class="input-wrap">
+          <input type="text" id="exportFilename" value="subliminal_mix" placeholder="subliminal_mix"/>
+          <span class="input-suffix">.wav</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="export-actions">
+      <button class="btn-primary big" id="btnExport">⤓ Export WAV</button>
+      <button class="btn-ghost" id="btnPreview">▶ Preview Mix</button>
+    </div>
+
+    <div class="render-progress hidden" id="renderProgress">
+      <div class="rp-label">Rendering… <span id="rPct">0%</span></div>
+      <div class="rp-track"><div class="rp-fill" id="rFill"></div></div>
+    </div>
+
+    <div class="export-log" id="exportLog"></div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="app-footer">
+  <p>Subliminal Forge v2 · Static · No cloud · No backend · Web Audio API</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
