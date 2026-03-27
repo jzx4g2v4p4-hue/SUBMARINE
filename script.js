@@ -145,6 +145,8 @@ const APP = {
   focusVol:     0.15,
   focusPreset:  'focus',
   exportFilename: 'subliminal_mix',
+  exportFormat: 'wav',
+  lameLoader:   null,
   activeLayer:  0,
 };
 
@@ -888,6 +890,7 @@ function saveSession() {
     focusVol:     parseInt($('slFocusVol').value),
     focusPreset:  APP.focusPreset,
     exportFilename: $('exportFilename').value,
+    exportFormat: $('exportFormat').value,
   };
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify(data));
@@ -969,6 +972,9 @@ function loadSession() {
 
     // Export filename
     $('exportFilename').value = data.exportFilename || 'subliminal_mix';
+    APP.exportFormat = data.exportFormat === 'mp3' ? 'mp3' : 'wav';
+    $('exportFormat').value = APP.exportFormat;
+    updateExportUI();
 
     syncTogglePills();
     notice('ok', '✓ Session loaded from ' + new Date(data.saved).toLocaleString() + '. Note: audio file must be re-uploaded.');
@@ -1007,7 +1013,10 @@ function resetSession() {
   $('slMasterVol').value= 88;  $('vMasterVol').textContent = '88%';
   $('slSpeed').value    = 100; $('vSpeed').textContent     = '1.00×';
   $('exportFilename').value = 'subliminal_mix';
+  $('exportFormat').value = 'wav';
   APP.musicVol=0.80; APP.subMixVol=0.28; APP.masterVol=0.88; APP.playSpeed=1.0;
+  APP.exportFormat='wav';
+  updateExportUI();
   notice('info', 'Session reset. All affirmations and settings cleared.');
   log('Session reset', 'ok');
 }
@@ -1023,11 +1032,16 @@ function initExport() {
     $('btnExport').disabled = true;
   } else {
     notice('info',
-      '✓ WAV export ready. Export renders all enabled layers + music into a single WAV file using OfflineAudioContext. ' +
+      '✓ Export ready. WAV is lossless; MP3 uses 320 kbps CBR for smaller files. ' +
       'The subliminal layers are tone/noise-based (not TTS voice — see README for why).'
     );
   }
 
+  $('exportFormat').addEventListener('change', e => {
+    APP.exportFormat = e.target.value === 'mp3' ? 'mp3' : 'wav';
+    updateExportUI();
+  });
+  updateExportUI();
   $('btnExport').addEventListener('click', doExport);
   $('btnPreview').addEventListener('click', () => {
     if (APP.isPlaying) { pauseAudio(); $('btnPreview').textContent = '▶ Preview Mix'; }
@@ -1137,13 +1151,24 @@ async function doExport() {
     // Peak normalization pass
     normalize(rendered);
     setRPct(92);
-    log('Encoding WAV…');
-
-    const wavBuf = encodeWAV(rendered);
-    setRPct(98);
-
-    const fname = ($('exportFilename').value.trim() || 'subliminal_mix') + '.wav';
-    downloadBlob(new Blob([wavBuf], { type: 'audio/wav' }), fname);
+    const baseName = $('exportFilename').value.trim() || 'subliminal_mix';
+    const format = APP.exportFormat === 'mp3' ? 'mp3' : 'wav';
+    let fname = baseName + '.wav';
+    let blob = null;
+    if (format === 'mp3') {
+      log('Encoding MP3 @ 320 kbps…');
+      const mp3Buf = await encodeMP3(rendered, 320);
+      setRPct(98);
+      fname = baseName + '.mp3';
+      blob = new Blob([mp3Buf], { type: 'audio/mpeg' });
+    } else {
+      log('Encoding WAV…');
+      const wavBuf = encodeWAV(rendered);
+      setRPct(98);
+      fname = baseName + '.wav';
+      blob = new Blob([wavBuf], { type: 'audio/wav' });
+    }
+    downloadBlob(blob, fname);
 
     setRPct(100);
     setStatus('done', 'Done');
@@ -1159,6 +1184,12 @@ async function doExport() {
     $('btnExport').disabled = false;
     setTimeout(() => $('renderProgress').classList.add('hidden'), 4000);
   }
+}
+
+function updateExportUI() {
+  const isMp3 = APP.exportFormat === 'mp3';
+  $('exportSuffix').textContent = isMp3 ? '.mp3' : '.wav';
+  $('btnExport').textContent = isMp3 ? '⤓ Export MP3 (320k)' : '⤓ Export WAV';
 }
 
 function setRPct(p) {
@@ -1203,6 +1234,65 @@ function encodeWAV(buf) {
     }
   }
   return ab;
+}
+
+async function ensureLame() {
+  if (window.lamejs) return window.lamejs;
+  if (APP.lameLoader) return APP.lameLoader;
+
+  APP.lameLoader = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+    s.async = true;
+    s.onload = () => window.lamejs ? resolve(window.lamejs) : reject(new Error('lamejs failed to initialize.'));
+    s.onerror = () => reject(new Error('Could not load MP3 encoder. Check internet connection and retry.'));
+    document.head.appendChild(s);
+  });
+  return APP.lameLoader;
+}
+
+async function encodeMP3(audioBuffer, kbps = 320) {
+  const lame = await ensureLame();
+  const nCh = audioBuffer.numberOfChannels;
+  const sr = audioBuffer.sampleRate;
+  const enc = new lame.Mp3Encoder(nCh, sr, kbps);
+  const blockSize = 1152;
+  const total = audioBuffer.length;
+  const chunks = [];
+
+  if (nCh === 1) {
+    const mono = floatTo16(audioBuffer.getChannelData(0));
+    for (let i = 0; i < total; i += blockSize) {
+      const mp3 = enc.encodeBuffer(mono.subarray(i, i + blockSize));
+      if (mp3.length) chunks.push(new Uint8Array(mp3));
+    }
+  } else {
+    const left = floatTo16(audioBuffer.getChannelData(0));
+    const right = floatTo16(audioBuffer.getChannelData(1));
+    for (let i = 0; i < total; i += blockSize) {
+      const mp3 = enc.encodeBuffer(left.subarray(i, i + blockSize), right.subarray(i, i + blockSize));
+      if (mp3.length) chunks.push(new Uint8Array(mp3));
+    }
+  }
+
+  const end = enc.flush();
+  if (end.length) chunks.push(new Uint8Array(end));
+
+  let size = 0;
+  chunks.forEach(c => size += c.length);
+  const out = new Uint8Array(size);
+  let off = 0;
+  chunks.forEach(c => { out.set(c, off); off += c.length; });
+  return out;
+}
+
+function floatTo16(float32Array) {
+  const out = new Int16Array(float32Array.length);
+  for (let i = 0; i < float32Array.length; i++) {
+    const s = Math.max(-1, Math.min(1, float32Array[i]));
+    out[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+  }
+  return out;
 }
 
 function softClipCurve(n) {

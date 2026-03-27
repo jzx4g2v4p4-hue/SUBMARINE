@@ -10,7 +10,7 @@
   <meta name="description" content="Subliminal Forge v2 — multi-layer subliminal affirmation music mixer. Runs entirely in your browser."/>
   <title>Subliminal Forge</title>
   <link rel="manifest" href="manifest.webmanifest"/>
-  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
@@ -447,7 +447,16 @@
         <label class="ctrl-label" for="exportFilename">Filename</label>
         <div class="input-wrap">
           <input type="text" id="exportFilename" value="subliminal_mix" placeholder="subliminal_mix"/>
-          <span class="input-suffix">.wav</span>
+          <span class="input-suffix" id="exportSuffix">.wav</span>
+        </div>
+      </div>
+      <div class="input-row">
+        <label class="ctrl-label" for="exportFormat">Format</label>
+        <div class="input-wrap">
+          <select id="exportFormat" class="select-dark">
+            <option value="wav">WAV (Lossless)</option>
+            <option value="mp3">MP3 (320 kbps)</option>
+          </select>
         </div>
       </div>
     </div>

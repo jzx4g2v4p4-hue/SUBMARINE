@@ -35,9 +35,8 @@ script.js
 manifest.webmanifest
 service-worker.js
 README.md
-icons/
-  icon-192.png
-  icon-512.png
+icon-192.png
+icon-512.png
 ```
 
 **Via GitHub web UI:** drag and drop all files onto the repository page.
@@ -67,9 +66,9 @@ Takes 1–2 minutes to go live.
 
 ## Icons
 
-The manifest references `icons/icon-192.png` and `icons/icon-512.png`.
+The manifest references `icon-192.png` and `icon-512.png`.
 
-Create an `icons/` folder and add two PNG files. Any square image works. Free tools: [favicon.io](https://favicon.io), Canva, or any image editor.
+Add `icon-192.png` and `icon-512.png` in the project root. Any square image works. Free tools: [favicon.io](https://favicon.io), Canva, or any image editor.
 
 The app still works without icons — the PWA install prompt just won't show a custom image.
 
@@ -125,11 +124,14 @@ Tap the play button. All enabled layers render live via Web Audio API.
 - **Load** — restores a saved session. **Note: the audio file is not stored.** You must re-upload it each session (browser security prevents storing large audio blobs in localStorage reliably across all devices).
 - **Reset** — clears all saved data and returns to defaults
 
-### 6. Export WAV
+### 6. Export (WAV or MP3)
 1. Type a filename (default: `subliminal_mix`)
-2. Tap **Export WAV**
-3. The app renders everything offline via `OfflineAudioContext` — no server, no upload
-4. A `.wav` file downloads to your device (on iPhone: Files app → Downloads)
+2. Choose format:
+   - **WAV** — lossless, largest file size
+   - **MP3 (320 kbps)** — high quality, much smaller files
+3. Tap **Export**
+4. The app renders everything offline via `OfflineAudioContext` — no server, no upload
+5. A `.wav` or `.mp3` file downloads to your device (on iPhone: Files app → Downloads)
 
 ---
 
@@ -154,14 +156,14 @@ All textures are generated in real time using Web Audio API synthesis. **No spee
 
 The subliminal layers are **entirely synthesized audio signals** — structured tone/noise patterns embedded at the subliminal volume you set. They are real audio layers that are exported into the WAV. They are not voice recordings.
 
-### WAV Only
-MP3 encoding is not natively available in browsers without a third-party codec library. This app deliberately has no dependencies, so export is WAV only. WAV files are larger than MP3 but lossless and universally supported.
+### MP3 vs WAV
+WAV export is lossless and best for archival/master use. MP3 export uses a browser-side encoder at **320 kbps CBR** for high quality with smaller file sizes.
 
 ### iPhone Export
 - Requires iOS 14.5+ and Safari
-- The WAV file downloads to Files app → Downloads (or iCloud Drive depending on your settings)
+- The exported file (`.wav` or `.mp3`) downloads to Files app → Downloads (or iCloud Drive depending on your settings)
 - Very long tracks (30+ min) may run out of memory during render on older iPhones — try shorter tracks
-- The binaural focus layer is fully exported to WAV
+- The binaural focus layer is fully included in both WAV and MP3 exports
 
 ### Storage
 - `localStorage` stores your session (affirmations, settings) — typically 5MB limit per domain
@@ -184,7 +186,7 @@ The service worker caches the app shell for offline use after first load. Your a
 | Session storage | `localStorage` (JSON serialized) |
 | PWA | Web App Manifest + Service Worker |
 | Fonts | Google Fonts (DM Mono + Outfit) via CDN — works offline after first load if cached |
-| Dependencies | **Zero** — no npm, no build step, no framework |
+| Dependencies | No npm/build step/framework. Runtime uses browser APIs + `lamejs` (loaded on demand for MP3 export) |
 
 ---
 
@@ -197,9 +199,8 @@ subliminal-forge/
 ├── script.js             Complete audio engine and app logic
 ├── manifest.webmanifest  PWA manifest
 ├── service-worker.js     Offline shell cache
-├── icons/
-│   ├── icon-192.png      PWA icon (you provide)
-│   └── icon-512.png      PWA icon (you provide)
+├── icon-192.png          PWA icon (you provide)
+├── icon-512.png          PWA icon (you provide)
 └── README.md
 ```
 
