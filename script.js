@@ -81,6 +81,63 @@ const PRESET_PACKS = {
   ],
 };
 
+const EXAMPLE_SETS = {
+  focus: [
+    [
+      'I stay locked in and focused no matter what',
+      'My mind is clear and under control',
+      'I follow through with everything I start',
+      'Discipline is natural to me',
+      'I execute without overthinking',
+    ],
+    [
+      'My focus is strong and steady',
+      'I ignore distractions easily',
+      'I stay engaged with my work',
+      'I complete tasks efficiently',
+      'I lock in quickly and naturally',
+    ],
+    [
+      'I stay calm and composed',
+      'I trust myself completely',
+      'I move with clarity and control',
+    ],
+  ],
+  gym: [
+    [
+      'I stay disciplined every day',
+      'I push through resistance every time',
+      'I finish what I start',
+      'I move with strength and purpose',
+    ],
+    [
+      'I move forward without hesitation',
+      'I am relentless in pursuit of my goals',
+      'I channel intensity into action',
+    ],
+    [
+      'I trust my power',
+      'I stay composed under pressure',
+    ],
+  ],
+  chill: [
+    [
+      'My mind is calm and steady',
+      'I feel grounded and at ease',
+      'I release tension easily',
+    ],
+    [
+      'I trust myself completely',
+      'I move with clarity and control',
+      'I remain steady under pressure',
+    ],
+    [
+      'I relax deeply',
+      'I feel safe and calm',
+    ],
+  ],
+};
+
 /* ── BINAURAL / FOCUS PRESETS ─────────────────────────── */
 const FOCUS_PRESETS = {
   focus:  { carrier: 200, beat: 40,  label: 'Gamma — focus, cognition, attention' },
@@ -640,13 +697,15 @@ function updateFocusInfo() {
 
 /* ── LAYER UI WIRING ──────────────────────────────────── */
 function getLines(layerIdx) {
-  const ta = document.querySelector('.l-text[data-layer="' + layerIdx + '"]');
+  const all = Array.from(document.querySelectorAll('.l-text[data-layer="' + layerIdx + '"]'));
+  const ta = all.find(el => el.id === 'myLayer' + (layerIdx + 1)) || all[0];
   return ta ? ta.value.split('\n').map(l => l.trim()).filter(l => l.length > 0) : [];
 }
 
 function setLines(layerIdx, lines) {
-  const ta = document.querySelector('.l-text[data-layer="' + layerIdx + '"]');
-  if (ta) ta.value = lines.join('\n');
+  document.querySelectorAll('.l-text[data-layer="' + layerIdx + '"]').forEach(ta => {
+    ta.value = lines.join('\n');
+  });
   updateLayerCount(layerIdx);
 }
 
@@ -724,7 +783,11 @@ function initLayerUI() {
   // Text areas
   $$('.l-text').forEach(ta => {
     ta.addEventListener('input', () => {
-      updateLayerCount(parseInt(ta.dataset.layer));
+      const idx = parseInt(ta.dataset.layer);
+      document.querySelectorAll('.l-text[data-layer="' + idx + '"]').forEach(other => {
+        if (other !== ta) other.value = ta.value;
+      });
+      updateLayerCount(idx);
     });
   });
 
@@ -804,6 +867,120 @@ function applyModeToLayer(i, mode) {
   if (dSlider) { dSlider.value = density; document.querySelector('.l-density-val[data-layer="' + i + '"]').textContent = density; }
   if (APP.layerGains[i]) APP.layerGains[i].gain.value = vol/100;
   updateIntensity(i);
+}
+
+const MY_AFF_KEY = 'sf_v2_my_affirmations';
+
+function initSimpleWorkflowUI() {
+  const byId = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+
+  byId('btnClearAllAff', () => {
+    for (let i = 0; i < NUM_LAYERS; i++) setLines(i, []);
+    notice('info', 'All affirmation layers cleared.');
+  });
+  byId('btnLoadExFocus', () => loadExampleSet('focus'));
+  byId('btnLoadExGym', () => loadExampleSet('gym'));
+  byId('btnLoadExChill', () => loadExampleSet('chill'));
+  byId('btnSaveMyAff', saveMyAffirmations);
+
+  byId('btnModeFocus', () => applyMainMode('focus'));
+  byId('btnModeGym', () => applyMainMode('gym'));
+  byId('btnModeChill', () => applyMainMode('chill'));
+  byId('btnAdvSave', () => $('btnSaveSession').click());
+  byId('btnAdvLoad', () => $('btnLoadSession').click());
+  byId('btnAdvReset', () => $('btnResetSession').click());
+
+  byId('btnToggleAdvanced', () => {
+    const willShow = $('secMixer').classList.contains('hidden');
+    ['secMixer', 'secLayers', 'secFocus'].forEach(id => $(id).classList.toggle('hidden', !willShow));
+    $('btnToggleAdvanced').textContent = willShow ? 'Hide Advanced Settings' : 'Show Advanced Settings';
+  });
+
+  loadMyAffirmations();
+  applyMainMode('focus');
+}
+
+function saveMyAffirmations() {
+  try {
+    const payload = { version: 1, layers: [0, 1, 2].map(i => getLines(i)) };
+    localStorage.setItem(MY_AFF_KEY, JSON.stringify(payload));
+    notice('ok', '✓ My affirmations saved locally on this device.');
+  } catch (e) {
+    notice('warn', '⚠ Could not save affirmations: ' + e.message);
+  }
+}
+
+function loadMyAffirmations() {
+  try {
+    const raw = localStorage.getItem(MY_AFF_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!data || data.version !== 1 || !Array.isArray(data.layers)) return;
+    data.layers.forEach((lines, i) => { if (Array.isArray(lines)) setLines(i, lines); });
+    notice('info', 'Loaded your saved affirmations.');
+  } catch (e) {
+    console.warn('Affirmation load failed:', e);
+  }
+}
+
+function loadExampleSet(key) {
+  const set = EXAMPLE_SETS[key];
+  if (!set) return;
+  for (let i = 0; i < NUM_LAYERS; i++) setLines(i, set[i] || []);
+  notice('ok', 'Loaded example ' + key + ' affirmations.');
+}
+
+function setSliderValue(id, value, textId, text) {
+  if ($(id)) $(id).value = value;
+  if (textId && $(textId)) $(textId).textContent = text;
+}
+
+function applyMainMode(mode) {
+  const cfg = {
+    focus: { music:85, sub:22, master:85, speed:105, density:[6,8,10], spacing:[260,170,120], focusOn:true, focusPreset:'focus', focusVol:12, label:'Focus Mode Active' },
+    gym:   { music:85, sub:25, master:88, speed:110, density:[7,10,12], spacing:[220,140,90],  focusOn:false, focusPreset:'high',  focusVol:5,  label:'Gym Mode Active' },
+    chill: { music:85, sub:18, master:80, speed:100, density:[4,6,8], spacing:[380,260,180],  focusOn:true, focusPreset:'calm',  focusVol:10, label:'Chill Mode Active' },
+  }[mode];
+  if (!cfg) return;
+
+  APP.musicVol = cfg.music / 100;
+  APP.subMixVol = cfg.sub / 100;
+  APP.masterVol = cfg.master / 100;
+  APP.playSpeed = cfg.speed / 100;
+  APP.focusEnabled = cfg.focusOn;
+  APP.focusPreset = cfg.focusPreset;
+  APP.focusVol = cfg.focusVol / 100;
+
+  setSliderValue('slMusicVol', cfg.music, 'vMusicVol', cfg.music + '%');
+  setSliderValue('slSubMix', cfg.sub, 'vSubMix', cfg.sub + '%');
+  setSliderValue('slMasterVol', cfg.master, 'vMasterVol', cfg.master + '%');
+  setSliderValue('slSpeed', cfg.speed, 'vSpeed', (cfg.speed / 100).toFixed(2) + '×');
+  setSliderValue('slFocusVol', cfg.focusVol, 'vFocusVol', cfg.focusVol + '%');
+  if ($('toggleFocus')) $('toggleFocus').checked = cfg.focusOn;
+  updateFocusInfo();
+  $$('.focus-preset').forEach(b => b.classList.toggle('active', b.dataset.fp === cfg.focusPreset));
+
+  for (let i = 0; i < NUM_LAYERS; i++) {
+    APP.layers[i].enabled = true;
+    APP.layers[i].mode = 'low';
+    APP.layers[i].density = cfg.density[i];
+    APP.layers[i].spacing = cfg.spacing[i];
+    const cb = document.querySelector('.l-enabled[data-layer="' + i + '"]'); if (cb) cb.checked = true;
+    const den = document.querySelector('.l-density[data-layer="' + i + '"]'); if (den) den.value = cfg.density[i];
+    const sp = document.querySelector('.l-spacing[data-layer="' + i + '"]'); if (sp) sp.value = cfg.spacing[i];
+    const denVal = document.querySelector('.l-density-val[data-layer="' + i + '"]'); if (denVal) denVal.textContent = cfg.density[i];
+    const spVal = document.querySelector('.l-spacing-val[data-layer="' + i + '"]'); if (spVal) spVal.textContent = cfg.spacing[i] + 'ms';
+    $$('.l-mode-chip[data-layer="' + i + '"]').forEach(b => b.classList.toggle('active', b.dataset.mode === 'low'));
+    updateIntensity(i);
+  }
+  syncTogglePills();
+
+  if ($('modeActiveLabel')) $('modeActiveLabel').textContent = cfg.label;
+  $$('.mode-btn').forEach(b => b.classList.remove('active'));
+  if (mode === 'focus' && $('btnModeFocus')) $('btnModeFocus').classList.add('active');
+  if (mode === 'gym' && $('btnModeGym')) $('btnModeGym').classList.add('active');
+  if (mode === 'chill' && $('btnModeChill')) $('btnModeChill').classList.add('active');
+  notice('info', cfg.label + ' (audio settings applied; your affirmations were not changed).');
 }
 
 /* ── GLOBAL MIXER WIRING ─────────────────────────────── */
@@ -1156,8 +1333,10 @@ async function doExport() {
     let fname = baseName + '.wav';
     let blob = null;
     if (format === 'mp3') {
+      log('Preparing iPhone-compatible MP3 render (44.1kHz stereo)…');
+      const mp3Ready = await prepareBufferForMP3(rendered, 44100);
       log('Encoding MP3 @ 320 kbps…');
-      const mp3Buf = await encodeMP3(rendered, 320);
+      const mp3Buf = await encodeMP3(mp3Ready, 320);
       setRPct(98);
       fname = baseName + '.mp3';
       blob = new Blob([mp3Buf], { type: 'audio/mpeg' });
@@ -1253,7 +1432,7 @@ async function ensureLame() {
 
 async function encodeMP3(audioBuffer, kbps = 320) {
   const lame = await ensureLame();
-  const nCh = audioBuffer.numberOfChannels;
+  const nCh = Math.min(2, audioBuffer.numberOfChannels);
   const sr = audioBuffer.sampleRate;
   const enc = new lame.Mp3Encoder(nCh, sr, kbps);
   const blockSize = 1152;
@@ -1284,6 +1463,23 @@ async function encodeMP3(audioBuffer, kbps = 320) {
   let off = 0;
   chunks.forEach(c => { out.set(c, off); off += c.length; });
   return out;
+}
+
+async function prepareBufferForMP3(audioBuffer, targetSampleRate = 44100) {
+  const supportedRates = [32000, 44100, 48000];
+  const sr = supportedRates.includes(targetSampleRate) ? targetSampleRate : 44100;
+  const ch = Math.min(2, audioBuffer.numberOfChannels);
+  const needsResample = audioBuffer.sampleRate !== sr || audioBuffer.numberOfChannels !== ch;
+  if (!needsResample) return audioBuffer;
+
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const frames = Math.ceil(audioBuffer.duration * sr);
+  const off = new OAC(ch, frames, sr);
+  const src = off.createBufferSource();
+  src.buffer = audioBuffer;
+  src.connect(off.destination);
+  src.start(0);
+  return off.startRendering();
 }
 
 function floatTo16(float32Array) {
@@ -1339,6 +1535,7 @@ if ('serviceWorker' in navigator) {
   initMixer();
   initFocusLayer();
   initExport();
+  initSimpleWorkflowUI();
   syncTogglePills();
   setStatus('ready', 'Ready');
 

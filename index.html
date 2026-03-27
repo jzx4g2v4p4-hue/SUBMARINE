@@ -108,8 +108,53 @@
     </div>
   </section>
 
+  <!-- ── SECTION: MODE BUTTONS ───────────────────── -->
+  <section class="card" id="secModes">
+    <div class="card-hd">
+      <span class="card-ic">⚙</span>
+      <h2>Mode Buttons</h2>
+      <span class="card-badge info" id="modeActiveLabel">Focus Mode Active</span>
+    </div>
+    <p class="focus-notice">Best results come from smooth background use and consistency.</p>
+    <div class="mode-main-btns">
+      <button class="btn-primary mode-btn active" id="btnModeFocus">Focus Mode</button>
+      <button class="btn-primary mode-btn" id="btnModeGym">Gym Mode</button>
+      <button class="btn-primary mode-btn" id="btnModeChill">Chill Mode</button>
+    </div>
+  </section>
+
+  <!-- ── SECTION: MY AFFIRMATIONS ────────────────── -->
+  <section class="card" id="secMyAffirmations">
+    <div class="card-hd">
+      <span class="card-ic">✎</span>
+      <h2>My Affirmations</h2>
+      <span class="card-badge">one line = one affirmation</span>
+    </div>
+    <div class="my-aff-grid">
+      <div class="my-aff-col">
+        <label for="myLayer1">Layer 1 (Main)</label>
+        <textarea id="myLayer1" class="aff-area l-text" data-layer="0" rows="6" placeholder="Type or paste your own affirmations here."></textarea>
+      </div>
+      <div class="my-aff-col">
+        <label for="myLayer2">Layer 2 (Optional)</label>
+        <textarea id="myLayer2" class="aff-area l-text" data-layer="1" rows="6" placeholder="Optional second layer."></textarea>
+      </div>
+      <div class="my-aff-col">
+        <label for="myLayer3">Layer 3 (Optional)</label>
+        <textarea id="myLayer3" class="aff-area l-text" data-layer="2" rows="6" placeholder="Optional third layer."></textarea>
+      </div>
+    </div>
+    <div class="my-aff-actions">
+      <button class="btn-sm" id="btnClearAllAff">Clear All</button>
+      <button class="btn-sm" id="btnLoadExFocus">Load Example Focus</button>
+      <button class="btn-sm" id="btnLoadExGym">Load Example Gym</button>
+      <button class="btn-sm" id="btnLoadExChill">Load Example Chill</button>
+      <button class="btn-sm" id="btnSaveMyAff">Save My Affirmations</button>
+    </div>
+  </section>
+
   <!-- ── SECTION: GLOBAL MIXER ─────────────── -->
-  <section class="card" id="secMixer">
+  <section class="card advanced-only hidden" id="secMixer">
     <div class="card-hd">
       <span class="card-ic">⊞</span>
       <h2>Global Mixer</h2>
@@ -139,7 +184,7 @@
   </section>
 
   <!-- ── SECTION: SUBLIMINAL LAYERS ─────────── -->
-  <section class="card" id="secLayers">
+  <section class="card advanced-only hidden" id="secLayers">
     <div class="card-hd">
       <span class="card-ic">⟁</span>
       <h2>Subliminal Layers</h2>
@@ -400,7 +445,7 @@
   </section>
 
   <!-- ── SECTION: FOCUS / BINAURAL LAYER ──── -->
-  <section class="card" id="secFocus">
+  <section class="card advanced-only hidden" id="secFocus">
     <div class="card-hd">
       <span class="card-ic">◎</span>
       <h2>Focus Layer</h2>
@@ -430,6 +475,20 @@
         </div>
       </div>
       <div class="focus-info" id="focusInfo">Carrier: 200 Hz L / 240 Hz R · Beat: 40 Hz (Gamma — focus, attention)</div>
+    </div>
+  </section>
+
+  <!-- ── SECTION: ADVANCED SETTINGS ───────── -->
+  <section class="card" id="secAdvancedToggle">
+    <div class="card-hd">
+      <span class="card-ic">☰</span>
+      <h2>Advanced Settings</h2>
+    </div>
+    <button class="btn-ghost" id="btnToggleAdvanced">Show Advanced Settings</button>
+    <div class="my-aff-actions">
+      <button class="btn-sm" id="btnAdvSave">Save Session</button>
+      <button class="btn-sm" id="btnAdvLoad">Load Session</button>
+      <button class="btn-sm" id="btnAdvReset">Reset Session</button>
     </div>
   </section>
 

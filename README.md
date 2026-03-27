@@ -158,6 +158,7 @@ The subliminal layers are **entirely synthesized audio signals** — structured 
 
 ### MP3 vs WAV
 WAV export is lossless and best for archival/master use. MP3 export uses a browser-side encoder at **320 kbps CBR** for high quality with smaller file sizes.
+For broad phone compatibility (including iPhone), MP3 export is prepared as **44.1 kHz stereo** before encoding.
 
 ### iPhone Export
 - Requires iOS 14.5+ and Safari
