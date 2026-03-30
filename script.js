@@ -206,14 +206,33 @@ function renderRecent() {
   $('recentSessions').innerHTML = '<strong>Recent sessions:</strong><br>' + (list.map(s => `${new Date(s.dateTime).toLocaleString()} — ${s.sessionTitle} (${s.mode})`).join('<br>') || 'None yet');
 }
 
-function downloadText(name, text, type='text/plain') { const b = new Blob([text], { type }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 800); }
-function downloadSummary(type) {
-  const s = APP.lastSummary || buildSummary();
-  const base = ($('exportFilename').value || 'subliminal_session') + '_summary';
-  if (type === 'json') return downloadText(base + '.json', JSON.stringify(s, null, 2), 'application/json');
-  if (type === 'html') return downloadText(base + '.html', `<html><body><pre>${escapeHtml(JSON.stringify(s, null, 2))}</pre></body></html>`, 'text/html');
-  const txt = `Session Title: ${s.sessionTitle}\nDate/Time: ${s.dateTime}\nMode: ${s.mode}\nPomodoro: ${s.pomodoro.workMin}/${s.pomodoro.breakMin} x${s.pomodoro.sessions}\nSessions Completed: ${s.sessionsCompleted}\nActive Layers: ${s.activeLayers.join(', ')}\nBreak Behavior: ${s.breakBehavior}\n\nLayer 1:\n${s.affirmations.layer1.join('\n')}\n\nLayer 2:\n${s.affirmations.layer2.join('\n')}\n\nLayer 3:\n${s.affirmations.layer3.join('\n')}`;
-  downloadText(base + '.txt', txt, 'text/plain');
+/* ── EXPORT ENGINE ───────────────────────────────────── */
+function initExport() {
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OAC) {
+    notice('error',
+      '✗ OfflineAudioContext not available in this browser. WAV export requires Chrome, Firefox, or Safari 14.5+. ' +
+      'Live preview still works.'
+    );
+    $('btnExport').disabled = true;
+  } else {
+    notice('info',
+      '✓ Export ready. WAV is lossless; MP3 uses 320 kbps CBR for smaller files. ' +
+      'The subliminal layers are tone/noise-based (not TTS voice). ' +
+      'For best MP3 reliability, host vendor/lame.min.js in this repo.'
+    );
+  }
+
+  $('exportFormat').addEventListener('change', e => {
+    APP.exportFormat = e.target.value === 'mp3' ? 'mp3' : 'wav';
+    updateExportUI();
+  });
+  updateExportUI();
+  $('btnExport').addEventListener('click', doExport);
+  $('btnPreview').addEventListener('click', () => {
+    if (APP.isPlaying) { pauseAudio(); $('btnPreview').textContent = '▶ Preview Mix'; }
+    else { playAudio(); $('btnPreview').textContent = '⏸ Stop Preview'; if (!APP.musicBuffer) $('btnPreview').textContent = '▶ Preview Mix'; }
+  });
 }
 function escapeHtml(s) { return s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
 
@@ -291,10 +310,40 @@ function encodeWAV(buf) {
 }
 async function ensureLame() {
   if (window.lamejs) return window.lamejs;
-  await new Promise((res, rej) => {
-    const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js'; s.onload = res; s.onerror = () => rej(new Error('lamejs load failed')); document.head.appendChild(s);
+  if (APP.lameLoader) return APP.lameLoader;
+
+  const loadScript = (src) => new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => window.lamejs ? resolve(window.lamejs) : reject(new Error('lamejs loaded but did not initialize: ' + src));
+    s.onerror = () => reject(new Error('failed to load: ' + src));
+    document.head.appendChild(s);
   });
-  return window.lamejs;
+
+  APP.lameLoader = (async () => {
+    const sources = [
+      './vendor/lame.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js',
+      'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js',
+    ];
+    let lastErr = null;
+    for (const src of sources) {
+      try {
+        const lame = await loadScript(src);
+        if (lame) return lame;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw new Error(
+      'Could not load MP3 encoder from local or CDN sources. ' +
+      'Try again online, or add vendor/lame.min.js for offline reliability. ' +
+      (lastErr ? '(' + lastErr.message + ')' : '')
+    );
+  })();
+
+  return APP.lameLoader;
 }
 async function encodeMP3(buf, kbps) {
   const lame = await ensureLame();
