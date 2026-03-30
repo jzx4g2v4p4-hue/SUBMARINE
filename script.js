@@ -1182,7 +1182,8 @@ function initExport() {
   } else {
     notice('info',
       '✓ Export ready. WAV is lossless; MP3 uses 320 kbps CBR for smaller files. ' +
-      'The subliminal layers are tone/noise-based (not TTS voice).'
+      'The subliminal layers are tone/noise-based (not TTS voice). ' +
+      'For best MP3 reliability, host vendor/lame.min.js in this repo.'
     );
   }
 
@@ -1384,14 +1385,37 @@ async function ensureLame() {
   if (window.lamejs) return window.lamejs;
   if (APP.lameLoader) return APP.lameLoader;
 
-  APP.lameLoader = new Promise((resolve, reject) => {
+  const loadScript = (src) => new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+    s.src = src;
     s.async = true;
-    s.onload = () => window.lamejs ? resolve(window.lamejs) : reject(new Error('lamejs failed to initialize.'));
-    s.onerror = () => reject(new Error('Could not load MP3 encoder. Check internet connection and retry.'));
+    s.onload = () => window.lamejs ? resolve(window.lamejs) : reject(new Error('lamejs loaded but did not initialize: ' + src));
+    s.onerror = () => reject(new Error('failed to load: ' + src));
     document.head.appendChild(s);
   });
+
+  APP.lameLoader = (async () => {
+    const sources = [
+      './vendor/lame.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js',
+      'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js',
+    ];
+    let lastErr = null;
+    for (const src of sources) {
+      try {
+        const lame = await loadScript(src);
+        if (lame) return lame;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw new Error(
+      'Could not load MP3 encoder from local or CDN sources. ' +
+      'Try again online, or add vendor/lame.min.js for offline reliability. ' +
+      (lastErr ? '(' + lastErr.message + ')' : '')
+    );
+  })();
+
   return APP.lameLoader;
 }
 
