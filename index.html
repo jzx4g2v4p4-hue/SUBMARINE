@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Subliminal MP3 Maker</title>
+  <meta name="description" content="Upload a track, add affirmations, generate binaural beats, build Pomodoro sessions — export polished subliminal MP3s. 100% offline.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ HEADER ═══ -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5"/><path d="M8 14c0-3.314 2.686-6 6-6s6 2.686 6 6-2.686 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="14" cy="14" r="2.5" fill="currentColor"/></svg>
+        </div>
+        <span class="brand-name">Subliminal<em>Studio</em></span>
+      </div>
+      <nav class="mode-switcher">
+        <button class="mode-btn active" data-mode="standard" id="modeStandard">Standard</button>
+        <button class="mode-btn" data-mode="pomodoro" id="modePomodoro">Pomodoro</button>
+      </nav>
+      <div class="header-badge">100% offline</div>
+    </div>
+  </header>
+
+  <!-- ═══ STEP BAR ═══ -->
+  <div class="stepbar" id="stepbar"></div>
+
+  <!-- ═══ MAIN ═══ -->
+  <main class="main">
+
+    <!-- ── STANDARD MODE ── -->
+    <div id="standardMode">
+
+      <!-- S1: Upload -->
+      <section class="screen active" id="s-upload">
+        <div class="screen-hd">
+          <h1>Upload your track</h1>
+          <p>Suno songs, ambient music, anything. Stays on your device.</p>
+        </div>
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="audioInput" accept="audio/*">
+          <div class="dz-inner">
+            <div class="dz-orb">
+              <svg viewBox="0 0 40 40" fill="none"><path d="M20 28V12M13 19l7-7 7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="dz-title">Drop your audio here</div>
+            <div class="dz-sub">MP3 · WAV · OGG · M4A · FLAC</div>
+          </div>
+        </div>
+        <div class="file-loaded" id="fileLoaded" style="display:none">
+          <div class="file-pill">
+            <div class="file-pill-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M9 18V5l12-2v13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="18" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="16" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+            </div>
+            <div class="file-pill-info">
+              <span class="file-name" id="fileName">—</span>
+              <span class="file-meta" id="fileMeta">—</span>
+            </div>
+            <button class="file-remove" id="fileRemove" title="Remove">✕</button>
+          </div>
+          <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+        </div>
+        <div class="screen-foot">
+          <button class="btn-primary" id="uploadNext" disabled>Continue →</button>
+        </div>
+      </section>
+
+      <!-- S2: Affirmations -->
+      <section class="screen" id="s-affirm">
+        <div class="screen-hd">
+          <h1>Your affirmations</h1>
+          <p>One per line. Short, clear, present-tense, positive.</p>
+        </div>
+        <div class="preset-chips" id="affPresetChips">
+          <button class="chip" data-preset="focus">🎯 Focus</button>
+          <button class="chip" data-preset="confidence">⚡ Confidence</button>
+          <button class="chip" data-preset="fitness">💪 Fitness</button>
+          <button class="chip" data-preset="sleep">🌙 Sleep</button>
+          <button class="chip" data-preset="wealth">✨ Abundance</button>
+        </div>
+        <textarea class="affirm-ta" id="affirmTA" placeholder="I am focused and fully present.&#10;My mind is sharp and clear.&#10;I achieve everything I set out to do.&#10;I am calm, confident, and capable."></textarea>
+        <div class="affirm-foot">
+          <span class="affirm-count"><strong id="affCount">0</strong> affirmations</span>
+          <span class="affirm-tip">💡 Use "I am" / "I have" · Keep under 10 words · Positive only</span>
+        </div>
+        <div class="screen-foot">
+          <button class="btn-ghost" id="affBack">← Back</button>
+          <button class="btn-primary" id="affNext" disabled>Continue →</button>
+        </div>
+      </section>
+
+      <!-- S3: Goal + Mode -->
+      <section class="screen" id="s-goal">
+        <div class="screen-hd">
+          <h1>Goal &amp; settings</h1>
+          <p>Pick a goal and the app tunes everything automatically.</p>
+        </div>
+        <div class="goal-section">
+          <div class="section-label">Your Goal</div>
+          <div class="goal-grid" id="goalGrid">
+            <div class="goal-card sel" data-goal="focus"><div class="goal-icon">🎯</div><div class="goal-name">Focus</div><div class="goal-desc">Study · Work · Flow</div></div>
+            <div class="goal-card" data-goal="relax"><div class="goal-icon">🌊</div><div class="goal-name">Deep Relax</div><div class="goal-desc">Calm · Unwind</div></div>
+            <div class="goal-card" data-goal="energy"><div class="goal-icon">⚡</div><div class="goal-name">Energy</div><div class="goal-desc">Gym · Motivation</div></div>
+            <div class="goal-card" data-goal="sleep"><div class="goal-icon">🌙</div><div class="goal-name">Sleep</div><div class="goal-desc">Night · Rest</div></div>
+            <div class="goal-card" data-goal="confidence"><div class="goal-icon">🔥</div><div class="goal-name">Confidence</div><div class="goal-desc">Belief · Power</div></div>
+            <div class="goal-card" data-goal="custom"><div class="goal-icon">⚙️</div><div class="goal-name">Custom</div><div class="goal-desc">Your settings</div></div>
+          </div>
+        </div>
+        <div class="mode-section">
+          <div class="section-label">Subliminal Mode <span class="auto-tag" id="modeAutoTag">auto-selected</span></div>
+          <div class="mode-list" id="modeList">
+            <div class="mode-row sel" data-mode="hybrid">
+              <div class="mode-dot"></div>
+              <div class="mode-body">
+                <div class="mode-title">Hybrid <span class="mode-rec">✦ Recommended</span></div>
+                <div class="mode-desc">Balanced — subtle yet reinforcing. Best for daily listening.</div>
+              </div>
+            </div>
+            <div class="mode-row" data-mode="barely">
+              <div class="mode-dot"></div>
+              <div class="mode-body">
+                <div class="mode-title">Barely Audible</div>
+                <div class="mode-desc">Right on the edge of perception. Focus sessions &amp; work.</div>
+              </div>
+            </div>
+            <div class="mode-row" data-mode="hidden">
+              <div class="mode-dot"></div>
+              <div class="mode-body">
+                <div class="mode-title">Hidden</div>
+                <div class="mode-desc">Deeply masked. Ideal for sleep. Track sounds nearly identical.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Binaural toggle -->
+        <div class="binaural-card" id="binauralCard">
+          <div class="binaural-top">
+            <div class="binaural-left">
+              <div class="binaural-title">Binaural Beats <span class="beta-tag">optional</span></div>
+              <div class="binaural-desc" id="binauralDesc">10 Hz alpha — focus &amp; concentration</div>
+            </div>
+            <label class="tog-wrap">
+              <input type="checkbox" id="binauralToggle">
+              <div class="tog-track"><div class="tog-thumb"></div></div>
+            </label>
+          </div>
+          <div class="binaural-presets" id="binauralPresets" style="display:none">
+            <button class="bp-chip sel" data-bp="focus">Focus 10Hz</button>
+            <button class="bp-chip" data-bp="relax">Relax 5Hz</button>
+            <button class="bp-chip" data-bp="energy">Energy 16Hz</button>
+            <button class="bp-chip" data-bp="sleep">Sleep 2Hz</button>
+          </div>
+        </div>
+        <div class="screen-foot">
+          <button class="btn-ghost" id="goalBack">← Back</button>
+          <button class="btn-primary" id="goalNext">Optimize →</button>
+        </div>
+      </section>
+
+      <!-- S4: Optimize -->
+      <section class="screen" id="s-optimize">
+        <div class="screen-hd">
+          <h1>Auto-optimize</h1>
+          <p>One tap — the engine handles everything.</p>
+        </div>
+        <div class="ready-summary" id="readySummary">
+          <div class="rs-grid">
+            <div class="rs-item"><div class="rs-k">Track</div><div class="rs-v" id="rsSong">–</div></div>
+            <div class="rs-item"><div class="rs-k">Affirmations</div><div class="rs-v" id="rsAff">–</div></div>
+            <div class="rs-item"><div class="rs-k">Goal</div><div class="rs-v" id="rsGoal">–</div></div>
+            <div class="rs-item"><div class="rs-k">Mode</div><div class="rs-v" id="rsMode">–</div></div>
+            <div class="rs-item"><div class="rs-k">Binaural</div><div class="rs-v" id="rsBin">Off</div></div>
+            <div class="rs-item"><div class="rs-k">Duration</div><div class="rs-v" id="rsDur">–</div></div>
+          </div>
+          <div class="opt-notice">
+            <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><path d="M8 5v3.5M8 11v.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            Your device's built-in voice generates affirmations. Nothing leaves your device.
+          </div>
+          <button class="opt-btn" id="optBtn">✦ Auto-Optimize My Track</button>
+        </div>
+        <div class="opt-running" id="optRunning" style="display:none">
+          <div class="opt-prog-card">
+            <div class="opt-prog-hd">
+              <span id="optProgLabel">Starting…</span>
+              <span id="optProgPct">0%</span>
+            </div>
+            <div class="opt-bar-track"><div class="opt-bar-fill" id="optBarFill"></div></div>
+            <div class="opt-steps" id="optSteps"></div>
+          </div>
+        </div>
+        <div class="opt-done" id="optDone" style="display:none">
+          <div class="done-card">
+            <div class="done-check">
+              <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <div class="done-title">Ready to preview</div>
+              <div class="done-sub" id="doneSub">Your subliminal track has been prepared</div>
+            </div>
+          </div>
+          <button class="btn-primary" id="optToPreview" style="width:100%;margin-top:16px">Preview Track →</button>
+        </div>
+        <div style="margin-top:14px"><button class="btn-ghost" id="optBack">← Back</button></div>
+      </section>
+
+      <!-- S5: Preview -->
+      <section class="screen" id="s-preview">
+        <div class="screen-hd">
+          <h1>Preview &amp; refine</h1>
+          <p>Listen before you export. Adjust if needed.</p>
+        </div>
+        <div class="compare-tabs">
+          <button class="ctab active" id="ctabEnh">✦ Enhanced</button>
+          <button class="ctab" id="ctabOrig">Original</button>
+        </div>
+        <div class="player-card">
+          <div class="player-top">
+            <button class="play-btn" id="playBtn">
+              <svg id="playIco" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+            </button>
+            <div class="player-meta">
+              <div class="player-title" id="playerTitle">Enhanced Subliminal Track</div>
+              <div class="player-time"><span id="curTime">0:00</span> / <span id="totTime">0:00</span></div>
+            </div>
+          </div>
+          <div class="progress-track" id="progTrack">
+            <div class="progress-fill" id="progFill"></div>
+          </div>
+          <div class="volume-row">
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="currentColor" stroke-width="1.5"/></svg>
+            <input type="range" min="0" max="100" value="80" id="volRange" class="vol-range">
+            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="currentColor" stroke-width="1.5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+        <!-- Tune card -->
+        <div class="tune-card">
+          <div class="tune-title">Fine-tune</div>
+          <div class="slider-row">
+            <div class="sl-top"><span class="sl-label">Subliminal Intensity</span><span class="sl-val" id="intensityVal">Hybrid</span></div>
+            <input type="range" min="1" max="3" step="1" value="2" id="intensityRange" class="styled-range">
+            <div class="sl-hints"><span>Hidden</span><span>Barely Audible</span></div>
+          </div>
+          <div class="slider-row">
+            <div class="sl-top"><span class="sl-label">Voice / Music Balance</span><span class="sl-val" id="balanceVal">25%</span></div>
+            <input type="range" min="5" max="60" value="25" id="balanceRange" class="styled-range">
+            <div class="sl-hints"><span>More subtle</span><span>More present</span></div>
+          </div>
+          <div class="slider-row no-mb">
+            <div class="sl-top"><span class="sl-label">Repetition Density</span><span class="sl-val" id="densityVal">Medium</span></div>
+            <input type="range" min="1" max="3" step="1" value="2" id="densityRange" class="styled-range">
+            <div class="sl-hints"><span>Sparse</span><span>Dense</span></div>
+          </div>
+        </div>
+        <!-- Binaural quick toggle in preview -->
+        <div class="preview-bin-row">
+          <span>Binaural Beats</span>
+          <label class="tog-wrap">
+            <input type="checkbox" id="prevBinToggle">
+            <div class="tog-track"><div class="tog-thumb"></div></div>
+          </label>
+        </div>
+        <!-- Advanced accordion -->
+        <button class="adv-btn" id="advBtn">
+          <svg viewBox="0 0 24 24" fill="none" width="14" height="14" id="advChev"><polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Advanced Settings
+        </button>
+        <div class="adv-panel" id="advPanel">
+          <div class="adv-grid">
+            <div class="adv-item">
+              <div class="adv-label">TTS Speed</div>
+              <div class="adv-desc">How fast affirmations are spoken</div>
+              <input type="range" min="0.6" max="1.4" step="0.05" value="1.0" id="ttsSpeedRange" class="styled-range">
+              <div class="sl-hints"><span>0.6×</span><span id="ttsSpeedVal">1.0×</span><span>1.4×</span></div>
+            </div>
+            <div class="adv-item">
+              <div class="adv-label">Fade In / Out</div>
+              <div class="adv-desc">Gentle fades at track start and end</div>
+              <label class="tog-wrap"><input type="checkbox" id="togFade" checked><div class="tog-track"><div class="tog-thumb"></div></label>
+            </div>
+            <div class="adv-item">
+              <div class="adv-label">Stereo Spread</div>
+              <div class="adv-desc">Slightly vary panning per repetition</div>
+              <label class="tog-wrap"><input type="checkbox" id="togStereo" checked><div class="tog-track"><div class="tog-thumb"></div></label>
+            </div>
+            <div class="adv-item">
+              <div class="adv-label">Soft Limiter</div>
+              <div class="adv-desc">Prevents clipping and distortion</div>
+              <label class="tog-wrap"><input type="checkbox" id="togLimit" checked><div class="tog-track"><div class="tog-thumb"></div></label>
+            </div>
+            <div class="adv-item">
+              <div class="adv-label">Binaural Level</div>
+              <div class="adv-desc">Relative volume of binaural layer</div>
+              <input type="range" min="0.01" max="0.15" step="0.01" value="0.04" id="binLevelRange" class="styled-range">
+              <div class="sl-hints"><span>Subtle</span><span id="binLevelVal">4%</span><span>Louder</span></div>
+            </div>
+            <div class="adv-item">
+              <div class="adv-label">Binaural Carrier Hz</div>
+              <div class="adv-desc">Base frequency for binaural generation</div>
+              <input type="range" min="100" max="400" step="10" value="200" id="carrierRange" class="styled-range">
+              <div class="sl-hints"><span>100Hz</span><span id="carrierVal">200Hz</span><span>400Hz</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="screen-foot">
+          <button class="btn-ghost" id="prevBack">← Back</button>
+          <button class="btn-primary" id="prevNext">Export →</button>
+        </div>
+      </section>
+
+      <!-- S6: Export -->
+      <section class="screen" id="s-export">
+        <div class="screen-hd">
+          <h1>Export your track</h1>
+          <p>High-quality WAV download — ready to use anywhere.</p>
+        </div>
+        <div class="export-summary">
+          <div class="rs-grid" id="exportGrid"></div>
+        </div>
+        <div id="exportArea">
+          <button class="export-btn" id="exportBtn">↓ Download Track</button>
+        </div>
+        <div class="export-win" id="exportWin" style="display:none">
+          <div class="win-ico">
+            <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="win-title">Track saved!</div>
+          <div class="win-sub" id="winSub">Your subliminal track has been exported.</div>
+        </div>
+        <div class="screen-foot" style="margin-top:20px">
+          <button class="btn-ghost" id="expBack">← Back</button>
+          <button class="btn-primary" id="expNew" style="background:transparent;border:1px solid var(--b2);color:var(--t2)">New Track →</button>
+        </div>
+      </section>
+
+    </div><!-- /standardMode -->
+
+    <!-- ── POMODORO MODE ── -->
+    <div id="pomodoroMode" style="display:none">
+
+      <!-- P1: Session Builder -->
+      <section class="screen active" id="p-session">
+        <div class="screen-hd">
+          <h1>Pomodoro Session Builder</h1>
+          <p>Build a long-form subliminal session — work blocks, breaks, binaural, all merged into one export.</p>
+        </div>
+        <!-- Preset cards -->
+        <div class="pom-presets" id="pomPresets">
+          <div class="pom-preset-card sel" data-preset="30min">
+            <div class="ppc-title">30 min</div>
+            <div class="ppc-sub">Focus block, no breaks</div>
+          </div>
+          <div class="pom-preset-card" data-preset="25-5">
+            <div class="ppc-title">25 / 5</div>
+            <div class="ppc-sub">Classic Pomodoro</div>
+          </div>
+          <div class="pom-preset-card" data-preset="50-10">
+            <div class="ppc-title">50 / 10</div>
+            <div class="ppc-sub">Extended focus</div>
+          </div>
+          <div class="pom-preset-card" data-preset="90-20">
+            <div class="ppc-title">90 / 20</div>
+            <div class="ppc-sub">Deep work cycle</div>
+          </div>
+          <div class="pom-preset-card" data-preset="custom">
+            <div class="ppc-title">Custom</div>
+            <div class="ppc-sub">Your own timing</div>
+          </div>
+        </div>
+        <!-- Custom builder (shown when custom selected) -->
+        <div class="custom-pom" id="customPom" style="display:none">
+          <div class="cpom-row">
+            <div class="cpom-field">
+              <label>Work block (min)</label>
+              <input type="number" id="workMins" value="25" min="5" max="120" class="cpom-input">
+            </div>
+            <div class="cpom-field">
+              <label>Break block (min)</label>
+              <input type="number" id="breakMins" value="5" min="0" max="60" class="cpom-input">
+            </div>
+            <div class="cpom-field">
+              <label>Cycles</label>
+              <input type="number" id="cycles" value="4" min="1" max="12" class="cpom-input">
+            </div>
+          </div>
+        </div>
+        <!-- Session preview -->
+        <div class="session-timeline" id="sessionTimeline"></div>
+        <!-- Music upload for pomodoro -->
+        <div class="pom-section">
+          <div class="section-label">Music Track</div>
+          <div class="pom-upload" id="pomUploadZone">
+            <input type="file" id="pomAudioInput" accept="audio/*">
+            <span id="pomUploadLabel">Tap to choose audio file</span>
+          </div>
+        </div>
+        <!-- Work affirmations -->
+        <div class="pom-section">
+          <div class="section-label">Work Block Affirmations</div>
+          <div class="preset-chips" id="pomWorkChips">
+            <button class="chip" data-preset="focus">🎯 Focus</button>
+            <button class="chip" data-preset="confidence">⚡ Confidence</button>
+          </div>
+          <textarea class="affirm-ta small" id="pomWorkAff" placeholder="I am deeply focused.&#10;I complete every task with ease.&#10;My concentration is razor sharp."></textarea>
+        </div>
+        <!-- Break affirmations -->
+        <div class="pom-section">
+          <div class="section-label">Break Block Affirmations <span style="font-size:11px;color:var(--t3)">(optional)</span></div>
+          <div class="preset-chips">
+            <button class="chip" data-ta="pomBreakAff" data-preset="relax">🌊 Relax</button>
+            <button class="chip" data-ta="pomBreakAff" data-preset="sleep">🌙 Reset</button>
+          </div>
+          <textarea class="affirm-ta small" id="pomBreakAff" placeholder="I rest and recharge fully.&#10;My mind refreshes with ease.&#10;I release all tension."></textarea>
+        </div>
+        <!-- Binaural -->
+        <div class="pom-section">
+          <div class="section-label">Binaural Beats</div>
+          <div class="pom-bin-row">
+            <div class="pom-bin-block">
+              <div class="pbb-label">Work block</div>
+              <select class="pom-select" id="workBinaural">
+                <option value="off">Off</option>
+                <option value="focus" selected>Focus 10Hz α</option>
+                <option value="energy">Energy 16Hz β</option>
+              </select>
+            </div>
+            <div class="pom-bin-block">
+              <div class="pbb-label">Break block</div>
+              <select class="pom-select" id="breakBinaural">
+                <option value="off" selected>Off</option>
+                <option value="relax">Relax 5Hz θ</option>
+                <option value="sleep">Sleep 2Hz δ</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="screen-foot">
+          <button class="btn-primary" id="pomBuild" style="flex:1">Build Session →</button>
+        </div>
+      </section>
+
+      <!-- P2: Pomodoro Optimize -->
+      <section class="screen" id="p-optimize">
+        <div class="screen-hd">
+          <h1>Rendering session</h1>
+          <p>Building your full Pomodoro subliminal track…</p>
+        </div>
+        <div class="session-spec" id="sessionSpec"></div>
+        <div class="opt-running" id="pomRunning" style="display:none">
+          <div class="opt-prog-card">
+            <div class="opt-prog-hd">
+              <span id="pomProgLabel">Starting…</span>
+              <span id="pomProgPct">0%</span>
+            </div>
+            <div class="opt-bar-track"><div class="opt-bar-fill" id="pomBarFill"></div></div>
+            <div class="opt-steps" id="pomSteps"></div>
+          </div>
+        </div>
+        <div class="opt-done" id="pomDone" style="display:none">
+          <div class="done-card">
+            <div class="done-check"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+            <div>
+              <div class="done-title">Session ready</div>
+              <div class="done-sub" id="pomDoneSub">Your Pomodoro session has been rendered</div>
+            </div>
+          </div>
+          <button class="export-btn" id="pomExportBtn" style="margin-top:20px">↓ Download Session</button>
+          <div class="export-win" id="pomExportWin" style="display:none;margin-top:16px">
+            <div class="win-ico"><svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+            <div class="win-title">Session saved!</div>
+            <div class="win-sub" id="pomWinSub"></div>
+          </div>
+        </div>
+        <div class="session-start-btn" id="sessionStartArea">
+          <button class="opt-btn" id="pomRenderBtn">✦ Render Full Session</button>
+        </div>
+        <div style="margin-top:14px"><button class="btn-ghost" id="pomBack">← Back</button></div>
+      </section>
+
+    </div><!-- /pomodoroMode -->
+
+  </main>
+
+</div><!-- #app -->
+
+<script src="js/presets.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/pomodoro.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
