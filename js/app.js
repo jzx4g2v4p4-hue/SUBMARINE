@@ -163,16 +163,19 @@ function handleAudioFile(file, target) {
       document.getElementById('uploadNext').disabled = false;
     });
   } else {
-    // Pomodoro upload
-    PomState.audioBuf = null;
+    // Pomodoro upload (single-file fallback path)
+    PomState.audioBufs = [];
     const label = document.getElementById('pomUploadLabel');
+    const list  = document.getElementById('pomTrackList');
+    if (list) list.innerHTML = '';
     label.textContent = 'Decoding…';
     decodeAudioFile(file, (err, buf) => {
       if (err) { label.textContent = '⚠ Error — try MP3 or WAV.'; return; }
-      PomState.audioBuf = buf;
+      PomState.audioBufs = [buf];
       const m = Math.floor(buf.duration / 60);
       const s = Math.round(buf.duration % 60).toString().padStart(2, '0');
       label.textContent = `✓ ${file.name} (${m}:${s})`;
+      if (list) list.innerHTML = `<div class="pom-track-item">1. ${file.name} · ${m}:${s}</div>`;
     });
   }
 }
@@ -585,8 +588,50 @@ document.querySelectorAll('.pom-preset-card').forEach(card => {
 
 // Pomodoro audio upload
 document.getElementById('pomAudioInput').addEventListener('change', ev => {
-  if (ev.target.files[0]) handleAudioFile(ev.target.files[0], 'pomodoro');
+  const files = Array.from(ev.target.files || []);
+  if (files.length === 0) return;
+  decodePomodoroFiles(files);
 });
+
+function decodePomodoroFiles(files) {
+  PomState.audioBufs = [];
+  const label = document.getElementById('pomUploadLabel');
+  const list  = document.getElementById('pomTrackList');
+  if (list) list.innerHTML = '';
+  label.textContent = `Decoding ${files.length} track${files.length > 1 ? 's' : ''}…`;
+
+  const decodedMeta = [];
+  let idx = 0;
+
+  const decodeNext = () => {
+    if (idx >= files.length) {
+      const totalSecs = decodedMeta.reduce((sum, t) => sum + t.duration, 0);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = Math.round(totalSecs % 60).toString().padStart(2, '0');
+      label.textContent = `✓ ${decodedMeta.length} track${decodedMeta.length > 1 ? 's' : ''} loaded (${mins}:${secs} total)`;
+      if (list) {
+        list.innerHTML = decodedMeta.map((t, i) =>
+          `<div class="pom-track-item">${i + 1}. ${t.name} · ${t.pretty}</div>`
+        ).join('');
+      }
+      return;
+    }
+
+    const file = files[idx];
+    decodeAudioFile(file, (err, buf) => {
+      if (!err && buf) {
+        PomState.audioBufs.push(buf);
+        const m = Math.floor(buf.duration / 60);
+        const s = Math.round(buf.duration % 60).toString().padStart(2, '0');
+        decodedMeta.push({ name: file.name, duration: buf.duration, pretty: `${m}:${s}` });
+      }
+      idx++;
+      decodeNext();
+    });
+  };
+
+  decodeNext();
+}
 
 // Pomodoro affirmation preset chips
 document.querySelectorAll('#pomWorkChips .chip').forEach(chip => {

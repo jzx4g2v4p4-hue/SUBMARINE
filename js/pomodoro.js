@@ -18,7 +18,7 @@ const PomState = {
   breakAffs:    [],
   workBinaural: 'focus',
   breakBinaural:'off',
-  audioBuf:     null,
+  audioBufs:    [],
   outBuf:       null
 };
 
@@ -98,7 +98,8 @@ function getPomPresetLabel() {
 async function renderPomodoroSession(onProgress) {
   const { blocks, totalMins } = getSessionConfig();
   const ac  = getAC();
-  const src = PomState.audioBuf;
+  const srcList = PomState.audioBufs || [];
+  const src = srcList[0] || null;
   const sr  = src ? src.sampleRate : 44100;
 
   const segmentBuffers = [];
@@ -114,8 +115,8 @@ async function renderPomodoroSession(onProgress) {
 
     // ── Loop or create music for this block ──
     let blockBuf;
-    if (src) {
-      blockBuf = loopBufferToLength(src, numSamples);
+    if (srcList.length > 0) {
+      blockBuf = buildPomodoroMusicBed(srcList, numSamples, sr);
     } else {
       blockBuf = createSilence(durationSecs, sr);
     }
@@ -181,6 +182,28 @@ async function renderPomodoroSession(onProgress) {
 
   PomState.outBuf = fullSession;
   return fullSession;
+}
+
+function buildPomodoroMusicBed(srcList, numSamples, sr) {
+  const ac = getAC();
+  const out = ac.createBuffer(2, numSamples, sr);
+  const outL = out.getChannelData(0);
+  const outR = out.getChannelData(1);
+  let writePos = 0;
+  let trackIdx = 0;
+
+  while (writePos < numSamples) {
+    const src = srcList[trackIdx % srcList.length];
+    const srcL = src.getChannelData(0);
+    const srcR = src.getChannelData(Math.min(1, src.numberOfChannels - 1));
+    const copyLen = Math.min(src.length, numSamples - writePos);
+    outL.set(srcL.subarray(0, copyLen), writePos);
+    outR.set(srcR.subarray(0, copyLen), writePos);
+    writePos += copyLen;
+    trackIdx++;
+  }
+
+  return out;
 }
 
 // ── Pomodoro progress steps ───────────────────

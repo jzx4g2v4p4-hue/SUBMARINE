@@ -702,6 +702,15 @@ html, body {
 }
 .pom-upload:hover { border-color: var(--ac); color: var(--ac); }
 .pom-upload input { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
+.pom-track-list { margin-top: 10px; display: grid; gap: 6px; }
+.pom-track-item {
+  background: var(--bg3);
+  border: 1px solid var(--b1);
+  border-radius: var(--r3);
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--t2);
+}
 
 .pom-bin-row { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
 .pom-bin-block { background:var(--bg3);border-radius:var(--r3);padding:12px; }
