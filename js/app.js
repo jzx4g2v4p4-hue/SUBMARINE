@@ -38,6 +38,9 @@ const State = {
   currentStep: 1
 };
 
+let pomPreviewUrl = null;
+let affPreviewActiveBtn = null;
+
 // ── Standard Mode Steps ───────────────────────
 const STD_STEPS = [
   { n: 1, label: 'Upload',    screen: 's-upload'   },
@@ -73,6 +76,7 @@ function renderStepBar() {
 // ── Navigate to step ──────────────────────────
 function goStep(n) {
   stopPlayback();
+  stopAffirmationPreview();
   State.currentStep = n;
   const steps = State.appMode === 'pomodoro' ? POM_STEPS : STD_STEPS;
   const step  = steps.find(s => s.n === n);
@@ -94,6 +98,7 @@ document.getElementById('modeStandard').addEventListener('click', () => switchAp
 document.getElementById('modePomodoro').addEventListener('click', () => switchAppMode('pomodoro'));
 
 function switchAppMode(mode) {
+  stopAffirmationPreview();
   State.appMode     = mode;
   State.currentStep = 1;
   document.getElementById('standardMode').style.display = mode === 'standard' ? '' : 'none';
@@ -207,6 +212,7 @@ document.querySelectorAll('#affPresetChips .chip').forEach(chip => {
 
 document.getElementById('affBack').addEventListener('click', () => goStep(1));
 document.getElementById('affNext').addEventListener('click', () => goStep(3));
+setupAffirmationPreviewButton('previewAffBtn', () => State.affirmations);
 
 // ══════════════════════════════════════════════
 // SCREEN 3: GOAL + MODE
@@ -656,6 +662,16 @@ document.getElementById('pomWorkAff').addEventListener('input', ev => {
 document.getElementById('pomBreakAff').addEventListener('input', ev => {
   PomState.breakAffs = ev.target.value.split('\n').filter(l => l.trim().length > 0);
 });
+setupAffirmationPreviewButton('previewPomWorkAffBtn', () => {
+  const lines = document.getElementById('pomWorkAff').value.split('\n').filter(l => l.trim().length > 0);
+  PomState.workAffs = lines;
+  return lines;
+});
+setupAffirmationPreviewButton('previewPomBreakAffBtn', () => {
+  const lines = document.getElementById('pomBreakAff').value.split('\n').filter(l => l.trim().length > 0);
+  PomState.breakAffs = lines;
+  return lines;
+});
 
 document.getElementById('workBinaural').addEventListener('change', ev => {
   PomState.workBinaural = ev.target.value;
@@ -691,6 +707,20 @@ document.getElementById('pomRenderBtn').addEventListener('click', startPomodoroR
 document.getElementById('pomExportBtn').addEventListener('click', exportPomodoro);
 
 function startPomodoroRender() {
+  const previewWrap = document.getElementById('pomPreviewWrap');
+  const previewAudio = document.getElementById('pomPreviewAudio');
+  if (previewAudio) {
+    previewAudio.pause();
+    previewAudio.currentTime = 0;
+    previewAudio.removeAttribute('src');
+    previewAudio.load();
+  }
+  if (previewWrap) previewWrap.style.display = 'none';
+  if (pomPreviewUrl) {
+    URL.revokeObjectURL(pomPreviewUrl);
+    pomPreviewUrl = null;
+  }
+
   document.getElementById('sessionStartArea').style.display = 'none';
   document.getElementById('pomRunning').style.display       = 'block';
   document.getElementById('pomBack').style.display          = 'none';
@@ -744,6 +774,7 @@ function finishPomodoroRender() {
   const { totalMins } = getSessionConfig();
   document.getElementById('pomDoneSub').textContent =
     `${totalMins}-minute session · ${PomState.cycles} cycle${PomState.cycles > 1 ? 's' : ''} · ready to download`;
+  setupPomodoroPreview(PomState.outBuf);
 }
 
 async function exportPomodoro() {
@@ -765,6 +796,65 @@ async function exportPomodoro() {
     document.getElementById('pomWinSub').textContent =
       `pomodoro_${presetLabel}_${totalMins}min.wav · ${fmtDuration(buf.duration)} of subliminal audio.`;
   }, 600);
+}
+
+function setupPomodoroPreview(buf) {
+  const wrap = document.getElementById('pomPreviewWrap');
+  const audio = document.getElementById('pomPreviewAudio');
+  if (!wrap || !audio || !buf) return;
+
+  if (pomPreviewUrl) URL.revokeObjectURL(pomPreviewUrl);
+  const wav = encodeWAV(buf);
+  const blob = new Blob([wav], { type: 'audio/wav' });
+  pomPreviewUrl = URL.createObjectURL(blob);
+  audio.src = pomPreviewUrl;
+  audio.currentTime = 0;
+  wrap.style.display = 'block';
+}
+
+function setupAffirmationPreviewButton(btnId, getLines) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    if (affPreviewActiveBtn === btn) {
+      stopAffirmationPreview();
+      return;
+    }
+    const lines = (getLines?.() || []).map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      alert('Add at least one affirmation to preview.');
+      return;
+    }
+    speakAffirmations(lines, btn);
+  });
+}
+
+function speakAffirmations(lines, btn) {
+  if (!window.speechSynthesis) {
+    alert('Affirmation preview is not supported in this browser.');
+    return;
+  }
+  stopAffirmationPreview();
+  const utterance = new SpeechSynthesisUtterance(lines.join('. '));
+  utterance.rate = Math.max(0.6, Math.min(1.4, State.ttsSpeed || 1.0));
+  utterance.pitch = 1.0;
+  utterance.onend = stopAffirmationPreview;
+  utterance.onerror = stopAffirmationPreview;
+
+  affPreviewActiveBtn = btn;
+  affPreviewActiveBtn.textContent = '■ Stop preview';
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+}
+
+function stopAffirmationPreview() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  if (affPreviewActiveBtn) affPreviewActiveBtn.textContent = '🔊 Preview affirmations';
+  const workBtn = document.getElementById('previewPomWorkAffBtn');
+  const breakBtn = document.getElementById('previewPomBreakAffBtn');
+  if (workBtn) workBtn.textContent = '🔊 Preview work affirmations';
+  if (breakBtn) breakBtn.textContent = '🔊 Preview break affirmations';
+  affPreviewActiveBtn = null;
 }
 
 // ══════════════════════════════════════════════
