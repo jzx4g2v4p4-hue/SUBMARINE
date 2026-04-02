@@ -38,6 +38,8 @@ const State = {
   currentStep: 1
 };
 
+let pomPreviewUrl = null;
+
 // ── Standard Mode Steps ───────────────────────
 const STD_STEPS = [
   { n: 1, label: 'Upload',    screen: 's-upload'   },
@@ -691,6 +693,20 @@ document.getElementById('pomRenderBtn').addEventListener('click', startPomodoroR
 document.getElementById('pomExportBtn').addEventListener('click', exportPomodoro);
 
 function startPomodoroRender() {
+  const previewWrap = document.getElementById('pomPreviewWrap');
+  const previewAudio = document.getElementById('pomPreviewAudio');
+  if (previewAudio) {
+    previewAudio.pause();
+    previewAudio.currentTime = 0;
+    previewAudio.removeAttribute('src');
+    previewAudio.load();
+  }
+  if (previewWrap) previewWrap.style.display = 'none';
+  if (pomPreviewUrl) {
+    URL.revokeObjectURL(pomPreviewUrl);
+    pomPreviewUrl = null;
+  }
+
   document.getElementById('sessionStartArea').style.display = 'none';
   document.getElementById('pomRunning').style.display       = 'block';
   document.getElementById('pomBack').style.display          = 'none';
@@ -744,6 +760,7 @@ function finishPomodoroRender() {
   const { totalMins } = getSessionConfig();
   document.getElementById('pomDoneSub').textContent =
     `${totalMins}-minute session · ${PomState.cycles} cycle${PomState.cycles > 1 ? 's' : ''} · ready to download`;
+  setupPomodoroPreview(PomState.outBuf);
 }
 
 async function exportPomodoro() {
@@ -765,6 +782,20 @@ async function exportPomodoro() {
     document.getElementById('pomWinSub').textContent =
       `pomodoro_${presetLabel}_${totalMins}min.wav · ${fmtDuration(buf.duration)} of subliminal audio.`;
   }, 600);
+}
+
+function setupPomodoroPreview(buf) {
+  const wrap = document.getElementById('pomPreviewWrap');
+  const audio = document.getElementById('pomPreviewAudio');
+  if (!wrap || !audio || !buf) return;
+
+  if (pomPreviewUrl) URL.revokeObjectURL(pomPreviewUrl);
+  const wav = encodeWAV(buf);
+  const blob = new Blob([wav], { type: 'audio/wav' });
+  pomPreviewUrl = URL.createObjectURL(blob);
+  audio.src = pomPreviewUrl;
+  audio.currentTime = 0;
+  wrap.style.display = 'block';
 }
 
 // ══════════════════════════════════════════════
