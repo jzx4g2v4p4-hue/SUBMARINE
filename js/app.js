@@ -508,25 +508,37 @@ async function doExport() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span>Rendering…';
 
-  // Re-render with latest settings
-  await buildMix().then(buf => { State.outBuf = buf; });
+  try {
+    // Re-render with latest settings
+    const rendered = await buildMix();
+    State.outBuf = rendered || State.outBuf;
 
-  setTimeout(() => {
-    const buf = State.outBuf || State.audioBuf;
-    if (!buf) { btn.disabled = false; btn.textContent = '↓ Download Track'; return; }
+    setTimeout(() => {
+      const buf = State.outBuf || State.audioBuf;
+      if (!buf) {
+        btn.disabled = false;
+        btn.textContent = '↓ Download Track';
+        return;
+      }
 
-    const base = (State.audioFile?.name || 'track').replace(/\.[^.]+$/, '');
-    downloadBuffer(buf, `${base}_subliminal_${State.goal}.wav`);
+      const base = (State.audioFile?.name || 'track').replace(/\.[^.]+$/, '');
+      downloadBuffer(buf, `${base}_subliminal_${State.goal}.wav`);
 
+      btn.disabled = false;
+      btn.textContent = '↓ Download Track';
+      document.getElementById('exportArea').style.display = 'none';
+      document.getElementById('exportWin').style.display  = 'block';
+
+      const dur = fmtTime(buf.duration);
+      document.getElementById('winSub').textContent =
+        `${base}_subliminal_${State.goal}.wav · ${State.affirmations.length} affirmations across ${dur}.`;
+    }, 700);
+  } catch (err) {
+    console.error('Export failed:', err);
     btn.disabled = false;
     btn.textContent = '↓ Download Track';
-    document.getElementById('exportArea').style.display = 'none';
-    document.getElementById('exportWin').style.display  = 'block';
-
-    const dur = fmtTime(buf.duration);
-    document.getElementById('winSub').textContent =
-      `${base}_subliminal_${State.goal}.wav · ${State.affirmations.length} affirmations across ${dur}.`;
-  }, 700);
+    alert('Export failed while rendering. Please try again or go back to Preview and reduce advanced effects.');
+  }
 }
 
 document.getElementById('expBack').addEventListener('click', () => goStep(5));
